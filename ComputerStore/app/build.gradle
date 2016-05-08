@@ -35,4 +35,5 @@ dependencies {
     compile "com.android.support:leanback-v17:23.3.0"
     compile 'com.squareup.picasso:picasso:2.5.0'
 
+    compile 'junit:junit:4.12'
 }
