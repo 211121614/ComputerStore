@@ -12,6 +12,8 @@ import android.database.Cursor;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.os.Binder;
+import android.os.IBinder;
 import android.util.Log;
 
 import java.io.IOException;
@@ -31,6 +33,7 @@ import computerstore.com.computerstore.services.components.MemoryService;
 public class MemoryServiceImpl extends IntentService implements MemoryService {
     private final MemoryAPI api;
     private final MemoryRepository repo;
+    private final IBinder localBinder = new MemoryServiceLocalBinder();
 
     public static final String ACTION_ADD = "computerstore.com.computerstore.services.components.Impl.action.ADD";
     public static final String ACTION_UPDATE = "computerstore.com.computerstore.services.components.Impl.action.UPDATE";
@@ -45,6 +48,19 @@ public class MemoryServiceImpl extends IntentService implements MemoryService {
             service = new MemoryServiceImpl();
         return service;
     }
+
+    @Override
+    public IBinder onBind(Intent intent) {
+        // TODO: Return the communication channel to the service.
+        return localBinder;
+    }
+
+    public class MemoryServiceLocalBinder extends Binder {
+        public MemoryServiceImpl getService() {
+            return MemoryServiceImpl.this;
+        }
+    }
+
 
     private MemoryServiceImpl() {
         super("MemoryServiceImpl");
@@ -76,31 +92,35 @@ public class MemoryServiceImpl extends IntentService implements MemoryService {
             final String action = intent.getAction();
             if (ACTION_ADD.equals(action)) {
                 final Memory memory = (Memory) intent.getSerializableExtra(EXTRA_ADD);
-                postContact(memory);
+                updateMemory(memory);
             } else if (ACTION_UPDATE.equals(action)) {
                 final Memory memory = (Memory) intent.getSerializableExtra(EXTRA_UPDATE);
-                updateContact(memory);
+                postMemory(memory);
             }
         }
     }
 
-    private void updateContact(Memory memory) {
+    public Memory updateMemory(Memory memory) {
         //REMOTE UPADTE AND LOCAL UPDATE
         try {
             Memory updatedContact = api.updateMemory(memory);
             repo.save(updatedContact);
+            return repo.save(updatedContact);
         } catch (IOException e) {
             e.printStackTrace();
         }
+        return repo.save(memory);
     }
 
-    private void postContact(Memory memory) {
+    public Memory postMemory(Memory memory) {
         //POST AND LOCAL SAVE
         try {
             Memory createdContact = api.createMemory(memory);
             repo.save(createdContact);
+            return repo.save(createdContact);
         } catch (IOException e) {
             e.printStackTrace();
         }
+        return repo.save(memory);
     }
 }

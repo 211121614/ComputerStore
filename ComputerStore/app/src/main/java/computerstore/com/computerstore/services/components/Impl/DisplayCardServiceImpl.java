@@ -7,6 +7,8 @@ package computerstore.com.computerstore.services.components.Impl;
 import android.app.IntentService;
 import android.content.Context;
 import android.content.Intent;
+import android.os.Binder;
+import android.os.IBinder;
 
 import java.io.IOException;
 
@@ -22,6 +24,7 @@ import computerstore.com.computerstore.services.components.DisplayCardService;
 public class DisplayCardServiceImpl extends IntentService implements DisplayCardService {
     private final DisplayCardAPI api;
     private final DisplayCardRepository repo;
+    private final IBinder localBinder = new DisplayCardServiceLocalBinder();
 
     public static final String ACTION_ADD = "computerstore.com.computerstore.services.components.Impl.action.ADD";
     public static final String ACTION_UPDATE = "computerstore.com.computerstore.services.components.Impl.action.UPDATE";
@@ -36,6 +39,19 @@ public class DisplayCardServiceImpl extends IntentService implements DisplayCard
             service = new DisplayCardServiceImpl();
         return service;
     }
+
+    @Override
+    public IBinder onBind(Intent intent) {
+        // TODO: Return the communication channel to the service.
+        return localBinder;
+    }
+
+    public class DisplayCardServiceLocalBinder extends Binder {
+        public DisplayCardServiceImpl getService() {
+            return DisplayCardServiceImpl.this;
+        }
+    }
+
 
     private DisplayCardServiceImpl() {
         super("DisplayCardServiceImpl");
@@ -67,32 +83,35 @@ public class DisplayCardServiceImpl extends IntentService implements DisplayCard
             final String action = intent.getAction();
             if (ACTION_ADD.equals(action)) {
                 final DisplayCard displayCard = (DisplayCard) intent.getSerializableExtra(EXTRA_ADD);
-                postContact(displayCard);
+                updateDisplayCard(displayCard);
             } else if (ACTION_UPDATE.equals(action)) {
                 final DisplayCard displayCard = (DisplayCard) intent.getSerializableExtra(EXTRA_UPDATE);
-                updateContact(displayCard);
+                postDisplayCard(displayCard);
             }
         }
     }
 
-    private void updateContact(DisplayCard displayCard) {
+    public DisplayCard updateDisplayCard(DisplayCard displayCard) {
         //REMOTE UPADTE AND LOCAL UPDATE
         try {
             DisplayCard updatedContact = api.updateDisplayCard(displayCard);
             repo.save(updatedContact);
+            return repo.save(updatedContact);
         } catch (IOException e) {
             e.printStackTrace();
         }
+        return repo.save(displayCard);
     }
 
-    private void postContact(DisplayCard displayCard) {
+    public DisplayCard postDisplayCard(DisplayCard displayCard) {
         //POST AND LOCAL SAVE
         try {
             DisplayCard createdContact = api.createDisplayCard(displayCard);
             repo.save(createdContact);
+            return repo.save(createdContact);
         } catch (IOException e) {
             e.printStackTrace();
         }
+        return repo.save(displayCard);
     }
-
 }

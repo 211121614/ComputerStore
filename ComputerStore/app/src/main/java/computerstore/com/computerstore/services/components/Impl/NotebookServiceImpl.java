@@ -12,6 +12,8 @@ import android.database.Cursor;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.os.Binder;
+import android.os.IBinder;
 import android.util.Log;
 
 import java.io.IOException;
@@ -31,6 +33,7 @@ import computerstore.com.computerstore.services.components.NotebookService;
 public class NotebookServiceImpl extends IntentService implements NotebookService {
     private final NotebookAPI api;
     private final NotebookRepository repo;
+    private final IBinder localBinder = new NotebookServiceLocalBinder();
 
     public static final String ACTION_ADD = "computerstore.com.computerstore.services.components.Impl.action.ADD";
     public static final String ACTION_UPDATE = "computerstore.com.computerstore.services.components.Impl.action.UPDATE";
@@ -45,6 +48,19 @@ public class NotebookServiceImpl extends IntentService implements NotebookServic
             service = new NotebookServiceImpl();
         return service;
     }
+
+    @Override
+    public IBinder onBind(Intent intent) {
+        // TODO: Return the communication channel to the service.
+        return localBinder;
+    }
+
+    public class NotebookServiceLocalBinder extends Binder {
+        public NotebookServiceImpl getService() {
+            return NotebookServiceImpl.this;
+        }
+    }
+
 
     private NotebookServiceImpl() {
         super("NotebookServiceImpl");
@@ -76,31 +92,35 @@ public class NotebookServiceImpl extends IntentService implements NotebookServic
             final String action = intent.getAction();
             if (ACTION_ADD.equals(action)) {
                 final Notebook notebook = (Notebook) intent.getSerializableExtra(EXTRA_ADD);
-                postContact(notebook);
+                updateNotebook(notebook);
             } else if (ACTION_UPDATE.equals(action)) {
                 final Notebook notebook = (Notebook) intent.getSerializableExtra(EXTRA_UPDATE);
-                updateContact(notebook);
+                postNotebook(notebook);
             }
         }
     }
 
-    private void updateContact(Notebook notebook) {
+    public Notebook updateNotebook(Notebook notebook) {
         //REMOTE UPADTE AND LOCAL UPDATE
         try {
             Notebook updatedContact = api.updateNotebook(notebook);
             repo.save(updatedContact);
+            return repo.save(updatedContact);
         } catch (IOException e) {
             e.printStackTrace();
         }
+        return repo.save(notebook);
     }
 
-    private void postContact(Notebook notebook) {
+    public Notebook postNotebook(Notebook notebook) {
         //POST AND LOCAL SAVE
         try {
             Notebook createdContact = api.createNotebook(notebook);
             repo.save(createdContact);
+            return repo.save(createdContact);
         } catch (IOException e) {
             e.printStackTrace();
         }
+        return repo.save(notebook);
     }
 }

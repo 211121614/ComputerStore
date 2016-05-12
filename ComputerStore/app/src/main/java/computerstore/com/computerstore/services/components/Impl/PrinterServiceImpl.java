@@ -12,6 +12,8 @@ import android.database.Cursor;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.os.Binder;
+import android.os.IBinder;
 import android.util.Log;
 
 import java.io.IOException;
@@ -31,6 +33,7 @@ import computerstore.com.computerstore.services.components.PrinterService;
 public class PrinterServiceImpl extends IntentService implements PrinterService {
     private final PrinterAPI api;
     private final PrinterRepository repo;
+    private final IBinder localBinder = new PrinterServiceLocalBinder();
 
     public static final String ACTION_ADD = "computerstore.com.computerstore.services.components.Impl.action.ADD";
     public static final String ACTION_UPDATE = "computerstore.com.computerstore.services.components.Impl.action.UPDATE";
@@ -45,6 +48,19 @@ public class PrinterServiceImpl extends IntentService implements PrinterService 
             service = new PrinterServiceImpl();
         return service;
     }
+
+    @Override
+    public IBinder onBind(Intent intent) {
+        // TODO: Return the communication channel to the service.
+        return localBinder;
+    }
+
+    public class PrinterServiceLocalBinder extends Binder {
+        public PrinterServiceImpl getService() {
+            return PrinterServiceImpl.this;
+        }
+    }
+
 
     private PrinterServiceImpl() {
         super("PrinterServiceImpl");
@@ -76,31 +92,35 @@ public class PrinterServiceImpl extends IntentService implements PrinterService 
             final String action = intent.getAction();
             if (ACTION_ADD.equals(action)) {
                 final Printer printer = (Printer) intent.getSerializableExtra(EXTRA_ADD);
-                postContact(printer);
+                updatePrinter(printer);
             } else if (ACTION_UPDATE.equals(action)) {
                 final Printer printer = (Printer) intent.getSerializableExtra(EXTRA_UPDATE);
-                updateContact(printer);
+                postPrinter(printer);
             }
         }
     }
 
-    private void updateContact(Printer printer) {
+    public Printer updatePrinter(Printer printer) {
         //REMOTE UPADTE AND LOCAL UPDATE
         try {
             Printer updatedContact = api.updatePrinter(printer);
             repo.save(updatedContact);
+            return repo.save(updatedContact);
         } catch (IOException e) {
             e.printStackTrace();
         }
+        return repo.save(printer);
     }
 
-    private void postContact(Printer printer) {
+    public Printer postPrinter(Printer printer) {
         //POST AND LOCAL SAVE
         try {
             Printer createdContact = api.createPrinter(printer);
             repo.save(createdContact);
+            return repo.save(createdContact);
         } catch (IOException e) {
             e.printStackTrace();
         }
+        return repo.save(printer);
     }
 }

@@ -12,6 +12,8 @@ import android.database.Cursor;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.os.Binder;
+import android.os.IBinder;
 import android.util.Log;
 
 import java.io.IOException;
@@ -31,6 +33,7 @@ import computerstore.com.computerstore.services.components.CPUService;
 public class CPUServiceImpl extends IntentService implements CPUService {
     private final CPUAPI api;
     private final CPURepository repo;
+    private final IBinder localBinder = new CPUServiceLocalBinder();
 
     public static final String ACTION_ADD = "computerstore.com.computerstore.services.components.Impl.action.ADD";
     public static final String ACTION_UPDATE = "computerstore.com.computerstore.services.components.Impl.action.UPDATE";
@@ -45,6 +48,19 @@ public class CPUServiceImpl extends IntentService implements CPUService {
             service = new CPUServiceImpl();
         return service;
     }
+
+    @Override
+    public IBinder onBind(Intent intent) {
+        // TODO: Return the communication channel to the service.
+        return localBinder;
+    }
+
+    public class CPUServiceLocalBinder extends Binder {
+        public CPUServiceImpl getService() {
+            return CPUServiceImpl.this;
+        }
+    }
+
 
     private CPUServiceImpl() {
         super("CPUServiceImpl");
@@ -76,31 +92,35 @@ public class CPUServiceImpl extends IntentService implements CPUService {
             final String action = intent.getAction();
             if (ACTION_ADD.equals(action)) {
                 final CPU cpu = (CPU) intent.getSerializableExtra(EXTRA_ADD);
-                postContact(cpu);
+                updateCPU(cpu);
             } else if (ACTION_UPDATE.equals(action)) {
                 final CPU cpu = (CPU) intent.getSerializableExtra(EXTRA_UPDATE);
-                updateContact(cpu);
+                postCPU(cpu);
             }
         }
     }
 
-    private void updateContact(CPU cpu) {
+    public CPU updateCPU(CPU cpu) {
         //REMOTE UPADTE AND LOCAL UPDATE
         try {
             CPU updatedContact = api.updateCPU(cpu);
             repo.save(updatedContact);
+            return repo.save(updatedContact);
         } catch (IOException e) {
             e.printStackTrace();
         }
+        return repo.save(cpu);
     }
 
-    private void postContact(CPU cpu) {
+    public CPU postCPU(CPU cpu) {
         //POST AND LOCAL SAVE
         try {
             CPU createdContact = api.createCPU(cpu);
             repo.save(createdContact);
+            return repo.save(createdContact);
         } catch (IOException e) {
             e.printStackTrace();
         }
+        return repo.save(cpu);
     }
 }

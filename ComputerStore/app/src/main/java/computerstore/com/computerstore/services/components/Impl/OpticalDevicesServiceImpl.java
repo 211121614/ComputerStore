@@ -12,6 +12,8 @@ import android.database.Cursor;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.os.Binder;
+import android.os.IBinder;
 import android.util.Log;
 
 import java.io.IOException;
@@ -31,6 +33,7 @@ import computerstore.com.computerstore.services.components.OpticalDevicesService
 public class OpticalDevicesServiceImpl extends IntentService implements OpticalDevicesService {
     private final OpticalDevicesAPI api;
     private final OpticalDevicesRepository repo;
+    private final IBinder localBinder = new OpticalDevicesServiceLocalBinder();
 
     public static final String ACTION_ADD = "computerstore.com.computerstore.services.components.Impl.action.ADD";
     public static final String ACTION_UPDATE = "computerstore.com.computerstore.services.components.Impl.action.UPDATE";
@@ -45,6 +48,19 @@ public class OpticalDevicesServiceImpl extends IntentService implements OpticalD
             service = new OpticalDevicesServiceImpl();
         return service;
     }
+
+    @Override
+    public IBinder onBind(Intent intent) {
+        // TODO: Return the communication channel to the service.
+        return localBinder;
+    }
+
+    public class OpticalDevicesServiceLocalBinder extends Binder {
+        public OpticalDevicesServiceImpl getService() {
+            return OpticalDevicesServiceImpl.this;
+        }
+    }
+
 
     private OpticalDevicesServiceImpl() {
         super("OpticalDevicesServiceImpl");
@@ -76,31 +92,35 @@ public class OpticalDevicesServiceImpl extends IntentService implements OpticalD
             final String action = intent.getAction();
             if (ACTION_ADD.equals(action)) {
                 final OpticalDevices opticalDevices = (OpticalDevices) intent.getSerializableExtra(EXTRA_ADD);
-                postContact(opticalDevices);
+                updateOpticalDevices(opticalDevices);
             } else if (ACTION_UPDATE.equals(action)) {
                 final OpticalDevices opticalDevices = (OpticalDevices) intent.getSerializableExtra(EXTRA_UPDATE);
-                updateContact(opticalDevices);
+                postOpticalDevices(opticalDevices);
             }
         }
     }
 
-    private void updateContact(OpticalDevices opticalDevices) {
+    public OpticalDevices updateOpticalDevices(OpticalDevices opticalDevices) {
         //REMOTE UPADTE AND LOCAL UPDATE
         try {
             OpticalDevices updatedContact = api.updateOpticalDevices(opticalDevices);
             repo.save(updatedContact);
+            return repo.save(updatedContact);
         } catch (IOException e) {
             e.printStackTrace();
         }
+        return repo.save(opticalDevices);
     }
 
-    private void postContact(OpticalDevices opticalDevices) {
+    public OpticalDevices postOpticalDevices(OpticalDevices opticalDevices) {
         //POST AND LOCAL SAVE
         try {
             OpticalDevices createdContact = api.createOpticalDevices(opticalDevices);
             repo.save(createdContact);
+            return repo.save(createdContact);
         } catch (IOException e) {
             e.printStackTrace();
         }
+        return repo.save(opticalDevices);
     }
 }

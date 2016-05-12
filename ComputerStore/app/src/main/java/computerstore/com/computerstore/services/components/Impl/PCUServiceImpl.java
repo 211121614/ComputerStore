@@ -12,6 +12,8 @@ import android.database.Cursor;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.os.Binder;
+import android.os.IBinder;
 import android.util.Log;
 
 import java.io.IOException;
@@ -31,6 +33,7 @@ import computerstore.com.computerstore.services.components.PCUService;
 public class PCUServiceImpl extends IntentService implements PCUService {
     private final PCUAPI api;
     private final PCURepository repo;
+    private final IBinder localBinder = new PCUServiceLocalBinder();
 
     public static final String ACTION_ADD = "computerstore.com.computerstore.services.components.Impl.action.ADD";
     public static final String ACTION_UPDATE = "computerstore.com.computerstore.services.components.Impl.action.UPDATE";
@@ -45,6 +48,19 @@ public class PCUServiceImpl extends IntentService implements PCUService {
             service = new PCUServiceImpl();
         return service;
     }
+
+    @Override
+    public IBinder onBind(Intent intent) {
+        // TODO: Return the communication channel to the service.
+        return localBinder;
+    }
+
+    public class PCUServiceLocalBinder extends Binder {
+        public PCUServiceImpl getService() {
+            return PCUServiceImpl.this;
+        }
+    }
+
 
     private PCUServiceImpl() {
         super("PCUServiceImpl");
@@ -76,31 +92,35 @@ public class PCUServiceImpl extends IntentService implements PCUService {
             final String action = intent.getAction();
             if (ACTION_ADD.equals(action)) {
                 final PCU pcu = (PCU) intent.getSerializableExtra(EXTRA_ADD);
-                postContact(pcu);
+                updatePCU(pcu);
             } else if (ACTION_UPDATE.equals(action)) {
                 final PCU pcu = (PCU) intent.getSerializableExtra(EXTRA_UPDATE);
-                updateContact(pcu);
+                postPCU(pcu);
             }
         }
     }
 
-    private void updateContact(PCU pcu) {
+    public PCU updatePCU(PCU pcu) {
         //REMOTE UPADTE AND LOCAL UPDATE
         try {
             PCU updatedContact = api.updatePCU(pcu);
             repo.save(updatedContact);
+            return repo.save(updatedContact);
         } catch (IOException e) {
             e.printStackTrace();
         }
+        return repo.save(pcu);
     }
 
-    private void postContact(PCU pcu) {
+    public PCU postPCU(PCU pcu) {
         //POST AND LOCAL SAVE
         try {
             PCU createdContact = api.createPCU(pcu);
             repo.save(createdContact);
+            return repo.save(createdContact);
         } catch (IOException e) {
             e.printStackTrace();
         }
+        return repo.save(pcu);
     }
 }

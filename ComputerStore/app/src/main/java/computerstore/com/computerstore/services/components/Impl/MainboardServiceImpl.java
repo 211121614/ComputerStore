@@ -12,6 +12,8 @@ import android.database.Cursor;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.os.Binder;
+import android.os.IBinder;
 import android.util.Log;
 
 import java.io.IOException;
@@ -31,6 +33,7 @@ import computerstore.com.computerstore.services.components.MainboardService;
 public class MainboardServiceImpl extends IntentService implements MainboardService {
     private final MainboardAPI api;
     private final MainboardRepository repo;
+    private final IBinder localBinder = new MainboardServiceLocalBinder();
 
     public static final String ACTION_ADD = "computerstore.com.computerstore.services.components.Impl.action.ADD";
     public static final String ACTION_UPDATE = "computerstore.com.computerstore.services.components.Impl.action.UPDATE";
@@ -45,6 +48,19 @@ public class MainboardServiceImpl extends IntentService implements MainboardServ
             service = new MainboardServiceImpl();
         return service;
     }
+
+    @Override
+    public IBinder onBind(Intent intent) {
+        // TODO: Return the communication channel to the service.
+        return localBinder;
+    }
+
+    public class MainboardServiceLocalBinder extends Binder {
+        public MainboardServiceImpl getService() {
+            return MainboardServiceImpl.this;
+        }
+    }
+
 
     private MainboardServiceImpl() {
         super("MainboardServiceImpl");
@@ -76,32 +92,36 @@ public class MainboardServiceImpl extends IntentService implements MainboardServ
             final String action = intent.getAction();
             if (ACTION_ADD.equals(action)) {
                 final Mainboard mainboard = (Mainboard) intent.getSerializableExtra(EXTRA_ADD);
-                postContact(mainboard);
+                updateMainboard(mainboard);
             } else if (ACTION_UPDATE.equals(action)) {
                 final Mainboard mainboard = (Mainboard) intent.getSerializableExtra(EXTRA_UPDATE);
-                updateContact(mainboard);
+                postMainboard(mainboard);
             }
         }
     }
 
-    private void updateContact(Mainboard mainboard) {
+    public Mainboard updateMainboard(Mainboard mainboard) {
         //REMOTE UPADTE AND LOCAL UPDATE
         try {
-           Mainboard updatedContact = api.updateMainboard(mainboard);
+            Mainboard updatedContact = api.updateMainboard(mainboard);
             repo.save(updatedContact);
+            return repo.save(updatedContact);
         } catch (IOException e) {
             e.printStackTrace();
         }
+        return repo.save(mainboard);
     }
 
-    private void postContact(Mainboard mainboard) {
+    public Mainboard postMainboard(Mainboard mainboard) {
         //POST AND LOCAL SAVE
         try {
-           Mainboard createdContact = api.createMainboard(mainboard);
+            Mainboard createdContact = api.createMainboard(mainboard);
             repo.save(createdContact);
+            return repo.save(createdContact);
         } catch (IOException e) {
             e.printStackTrace();
         }
+        return repo.save(mainboard);
     }
 
 }

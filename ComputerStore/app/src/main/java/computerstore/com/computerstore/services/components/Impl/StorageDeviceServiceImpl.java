@@ -7,6 +7,9 @@ package computerstore.com.computerstore.services.components.Impl;
 import android.app.IntentService;
 import android.content.Context;
 import android.content.Intent;
+import android.os.Binder;
+import android.os.IBinder;
+
 import java.io.IOException;
 
 import computerstore.com.computerstore.conf.util.App;
@@ -21,6 +24,7 @@ import computerstore.com.computerstore.services.components.StorageDeviceService;
 public class StorageDeviceServiceImpl extends IntentService implements StorageDeviceService {
     private final StorageDeviceAPI api;
     private final StorageDeviceRepository repo;
+    private final IBinder localBinder = new StorageDeviceServiceLocalBinder();
 
     public static final String ACTION_ADD = "computerstore.com.computerstore.services.components.Impl.action.ADD";
     public static final String ACTION_UPDATE = "computerstore.com.computerstore.services.components.Impl.action.UPDATE";
@@ -35,6 +39,19 @@ public class StorageDeviceServiceImpl extends IntentService implements StorageDe
             service = new StorageDeviceServiceImpl();
         return service;
     }
+
+    @Override
+    public IBinder onBind(Intent intent) {
+        // TODO: Return the communication channel to the service.
+        return localBinder;
+    }
+
+    public class StorageDeviceServiceLocalBinder extends Binder {
+        public StorageDeviceServiceImpl getService() {
+            return StorageDeviceServiceImpl.this;
+        }
+    }
+
 
     private StorageDeviceServiceImpl() {
         super("StorageDeviceServiceImpl");
@@ -66,31 +83,35 @@ public class StorageDeviceServiceImpl extends IntentService implements StorageDe
             final String action = intent.getAction();
             if (ACTION_ADD.equals(action)) {
                 final StorageDevice storageDevice = (StorageDevice) intent.getSerializableExtra(EXTRA_ADD);
-                postContact(storageDevice);
+                updateStorageDevice(storageDevice);
             } else if (ACTION_UPDATE.equals(action)) {
                 final StorageDevice storageDevice = (StorageDevice) intent.getSerializableExtra(EXTRA_UPDATE);
-                updateContact(storageDevice);
+                postStorageDevice(storageDevice);
             }
         }
     }
 
-    private void updateContact(StorageDevice storageDevice) {
+    public StorageDevice updateStorageDevice(StorageDevice storageDevice) {
         //REMOTE UPADTE AND LOCAL UPDATE
         try {
             StorageDevice updatedContact = api.updateStorageDevice(storageDevice);
             repo.save(updatedContact);
+            return repo.save(updatedContact);
         } catch (IOException e) {
             e.printStackTrace();
         }
+        return repo.save(storageDevice);
     }
 
-    private void postContact(StorageDevice storageDevice) {
+    public StorageDevice postStorageDevice(StorageDevice storageDevice) {
         //POST AND LOCAL SAVE
         try {
             StorageDevice createdContact = api.createStorageDevice(storageDevice);
             repo.save(createdContact);
+            return repo.save(createdContact);
         } catch (IOException e) {
             e.printStackTrace();
         }
+        return repo.save(storageDevice);
     }
 }

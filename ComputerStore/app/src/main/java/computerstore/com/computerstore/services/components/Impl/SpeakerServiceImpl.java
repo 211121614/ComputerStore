@@ -7,6 +7,8 @@ package computerstore.com.computerstore.services.components.Impl;
 import android.app.IntentService;
 import android.content.Context;
 import android.content.Intent;
+import android.os.Binder;
+import android.os.IBinder;
 
 import java.io.IOException;
 
@@ -22,6 +24,7 @@ import computerstore.com.computerstore.services.components.SpeakerService;
 public class SpeakerServiceImpl extends IntentService implements SpeakerService {
     private final SpeakerAPI api;
     private final SpeakerRepository repo;
+    private final IBinder localBinder = new SpeakerServiceLocalBinder();
 
     public static final String ACTION_ADD = "computerstore.com.computerstore.services.components.Impl.action.ADD";
     public static final String ACTION_UPDATE = "computerstore.com.computerstore.services.components.Impl.action.UPDATE";
@@ -36,6 +39,19 @@ public class SpeakerServiceImpl extends IntentService implements SpeakerService 
             service = new SpeakerServiceImpl();
         return service;
     }
+
+    @Override
+    public IBinder onBind(Intent intent) {
+        // TODO: Return the communication channel to the service.
+        return localBinder;
+    }
+
+    public class SpeakerServiceLocalBinder extends Binder {
+        public SpeakerServiceImpl getService() {
+            return SpeakerServiceImpl.this;
+        }
+    }
+
 
     private SpeakerServiceImpl() {
         super("SpeakerServiceImpl");
@@ -67,32 +83,36 @@ public class SpeakerServiceImpl extends IntentService implements SpeakerService 
             final String action = intent.getAction();
             if (ACTION_ADD.equals(action)) {
                 final Speaker speaker = (Speaker) intent.getSerializableExtra(EXTRA_ADD);
-                postContact(speaker);
+                updateSpeaker(speaker);
             } else if (ACTION_UPDATE.equals(action)) {
                 final Speaker speaker = (Speaker) intent.getSerializableExtra(EXTRA_UPDATE);
-                updateContact(speaker);
+                postSpeaker(speaker);
             }
         }
     }
 
-    private void updateContact(Speaker speaker) {
+    public Speaker updateSpeaker(Speaker speaker) {
         //REMOTE UPADTE AND LOCAL UPDATE
         try {
             Speaker updatedContact = api.updateSpeaker(speaker);
             repo.save(updatedContact);
+            return repo.save(updatedContact);
         } catch (IOException e) {
             e.printStackTrace();
         }
+        return repo.save(speaker);
     }
 
-    private void postContact(Speaker speaker) {
+    public Speaker postSpeaker(Speaker speaker) {
         //POST AND LOCAL SAVE
         try {
             Speaker createdContact = api.createSpeaker(speaker);
             repo.save(createdContact);
+            return repo.save(createdContact);
         } catch (IOException e) {
             e.printStackTrace();
         }
+        return repo.save(speaker);
     }
 
 }
